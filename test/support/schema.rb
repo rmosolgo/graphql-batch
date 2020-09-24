@@ -26,6 +26,10 @@ class ProductType < GraphQL::Schema::Object
   field :title, String, null: false
   field :images, [ImageType], null: true
 
+  if TESTING_DATALOADER
+    Promise = GraphQL::Execution::Lazy
+  end
+
   def images
     product_image_query = RecordLoader.for(Image).load(object.image_id)
     variant_images_query = AssociationLoader.for(Product, :variants).load(object).then do |variants|
@@ -193,5 +197,9 @@ class Schema < GraphQL::Schema
     use GraphQL::Analysis::AST
   end
 
-  use GraphQL::Batch
+  if TESTING_DATALOADER
+    use GraphQL::Dataloader
+  else
+    use GraphQL::Batch
+  end
 end
