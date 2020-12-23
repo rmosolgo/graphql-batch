@@ -14,30 +14,73 @@ class GraphQL::Batch::CustomExecutorTest < Minitest::Test
     end
   end
 
+  class CustomDataloader < GraphQL::Dataloader
+    class << self
+      attr_accessor :call_count
+    end
+    self.call_count = 0
+  end
+
   class Schema < GraphQL::Schema
     query ::QueryType
     mutation ::MutationType
 
-    use GraphQL::Batch, executor_class: MyCustomExecutor
+    if TESTING_DATALOADER
+      use GraphQL::Dataloader
+    else
+      use GraphQL::Batch, executor_class: MyCustomExecutor
+    end
+  end
+
+  # TODO This is a hack ...
+  class GraphQL::Execution::Lazy
+    class << self
+      alias :old_sync :sync
+      def sync(v)
+        CustomDataloader.call_count += 1
+        old_sync(v)
+      end
+    end
   end
 
   def setup
     MyCustomExecutor.call_count = 0
+    CustomDataloader.call_count = 0
+  end
+
+  def in_batch
+    if TESTING_DATALOADER
+      GraphQL::Dataloader.load do
+        yield
+      end
+    else
+      GraphQL::Batch.batch(executor_class: MyCustomExecutor) do
+        yield
+      end
+    end
+  end
+
+  def promise_call_count
+    if TESTING_DATALOADER
+      CustomDataloader.call_count
+    else
+      MyCustomExecutor.call_count
+    end
   end
 
   def test_batch_accepts_custom_executor
-    product = GraphQL::Batch.batch(executor_class: MyCustomExecutor) do
+    product = in_batch do
       RecordLoader.for(Product).load(1)
     end
 
     assert_equal 'Shirt', product.title
-    assert MyCustomExecutor.call_count > 0
+    assert_equal 1, promise_call_count
   end
 
   def test_custom_executor_class
     query_string = '{ product(id: "1") { id } }'
     Schema.execute(query_string)
 
-    assert MyCustomExecutor.call_count > 0
+    assert_equal 1, promise_call_count
   end
 end

@@ -1,4 +1,12 @@
-class RecordLoader < GraphQL::Batch::Loader
+if TESTING_DATALOADER
+  class BaseLoader < GraphQL::Dataloader::Source
+  end
+else
+  class BaseLoader < GraphQL::Batch::Loader
+  end
+end
+
+class RecordLoader < BaseLoader
   def initialize(model)
     @model = model
   end
@@ -13,7 +21,7 @@ class RecordLoader < GraphQL::Batch::Loader
   end
 end
 
-class AssociationLoader < GraphQL::Batch::Loader
+class AssociationLoader < BaseLoader
   def initialize(model, association)
     @model = model
     @association = association
@@ -25,7 +33,7 @@ class AssociationLoader < GraphQL::Batch::Loader
   end
 end
 
-class CounterLoader < GraphQL::Batch::Loader
+class CounterLoader < BaseLoader
   def cache_key(counter_array)
     counter_array.object_id
   end
@@ -35,7 +43,7 @@ class CounterLoader < GraphQL::Batch::Loader
   end
 end
 
-class NilLoader < GraphQL::Batch::Loader
+class NilLoader < BaseLoader
   def self.load
     self.for.load(nil)
   end

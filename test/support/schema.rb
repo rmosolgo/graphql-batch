@@ -26,6 +26,10 @@ class ProductType < GraphQL::Schema::Object
   field :title, String, null: false
   field :images, [ImageType], null: true
 
+  if TESTING_DATALOADER
+    Promise = GraphQL::Execution::Lazy
+  end
+
   def images
     product_image_query = RecordLoader.for(Image).load(object.image_id)
     variant_images_query = AssociationLoader.for(Product, :variants).load(object).then do |variants|
@@ -187,11 +191,9 @@ class Schema < GraphQL::Schema
   query QueryType
   mutation MutationType
 
-  if ENV["TESTING_LEGACY_DEFINITION_LAYER"] != "true"
-    use GraphQL::Execution::Interpreter
-    # This probably has no effect, but just to get the full test:
-    use GraphQL::Analysis::AST
+  if TESTING_DATALOADER
+    use GraphQL::Dataloader
+  else
+    use GraphQL::Batch
   end
-
-  use GraphQL::Batch
 end
