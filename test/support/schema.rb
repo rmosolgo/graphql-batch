@@ -191,12 +191,6 @@ class Schema < GraphQL::Schema
   query QueryType
   mutation MutationType
 
-  if ENV["TESTING_LEGACY_DEFINITION_LAYER"] != "true"
-    use GraphQL::Execution::Interpreter
-    # This probably has no effect, but just to get the full test:
-    use GraphQL::Analysis::AST
-  end
-
   if TESTING_DATALOADER
     use GraphQL::Dataloader
   else

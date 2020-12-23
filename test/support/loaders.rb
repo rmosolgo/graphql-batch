@@ -1,5 +1,5 @@
 if TESTING_DATALOADER
-  class BaseLoader < GraphQL::Dataloader::Loader
+  class BaseLoader < GraphQL::Dataloader::Source
   end
 else
   class BaseLoader < GraphQL::Batch::Loader

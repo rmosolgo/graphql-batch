@@ -32,6 +32,17 @@ class GraphQL::Batch::CustomExecutorTest < Minitest::Test
     end
   end
 
+  # TODO This is a hack ...
+  class GraphQL::Execution::Lazy
+    class << self
+      alias :old_sync :sync
+      def sync(v)
+        CustomDataloader.call_count += 1
+        old_sync(v)
+      end
+    end
+  end
+
   def setup
     MyCustomExecutor.call_count = 0
     CustomDataloader.call_count = 0
@@ -63,13 +74,13 @@ class GraphQL::Batch::CustomExecutorTest < Minitest::Test
     end
 
     assert_equal 'Shirt', product.title
-    assert promise_call_count > 0
+    assert_equal 1, promise_call_count
   end
 
   def test_custom_executor_class
     query_string = '{ product(id: "1") { id } }'
     Schema.execute(query_string)
 
-    assert promise_call_count > 0
+    assert_equal 1, promise_call_count
   end
 end
